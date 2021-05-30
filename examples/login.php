@@ -2,7 +2,7 @@
 
 // Required to manage STATE parameter
 session_start(); // Important! Required for STATE Variable check and prevent CSRF attacks
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../../vendor/autoload.php';
 use gimucco\TikTokLoginKit;
 
 /*
