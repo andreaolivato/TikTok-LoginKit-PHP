@@ -17,7 +17,7 @@ Current features include:
 Install via Composer
 
 ```
-composer require gimucco/tiktok-loginkit:@dev
+composer require gimucco/tiktok-loginkit
 ```
 
 ## Requirements
