@@ -17,6 +17,7 @@ class Connector {
 	public const BASE_REDIRECT_URL = 'https://open-api.tiktok.com/platform/oauth/connect/?client_key=%s&scope=%s&response_type=code&redirect_uri=%s&state=%s';
 	public const BASE_AUTH_URL = 'https://open-api.tiktok.com/oauth/access_token/?client_key=%s&client_secret=%s&code=%s&grant_type=authorization_code';
 	public const BASE_USER_URL = 'https://open-api.tiktok.com/oauth/userinfo/?open_id=%s&access_token=%s';
+	public const BASE_VIDEOS_URL = 'https://open-api.tiktok.com/video/list/?open_id=%s&access_token=%s&cursor=%d&max_count=%d';
 
 	// Name of the Session used to store the State. This is required to prevent CSRF attacks
 	public const SESS_STATE = 'TIKTOK_STATE';
@@ -119,7 +120,7 @@ class Connector {
 	 * Set the Token and User ID within the class for further use
 	 *
 	 * @param string $code contains the code received via the GET parameter
-	 * @return string the URL to which you need to redirect the user
+	 * @return object the Access Token Info
 	 * @throws Exception If the STATE is not valid or if the API return error
 	 */
 	public function verifyCode(string $code) {
@@ -175,6 +176,86 @@ class Connector {
 			$url = sprintf(self::BASE_USER_URL, $this->openid, $this->token);
 			$res = self::get($url);
 			return json_decode($res);
+		} catch (\Exception $e) {
+			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Calls the TikTok APIs to retrieve available videos for the logged user
+	 *
+	 * @param int $cursor contains the cursor for pagination
+	 * @param int $num_results max results returned by the API
+	 * @return object the JSON containing the user data
+	 * @throws Exception If the API returns an error
+	 */
+	public function getUserVideosInfo(int $cursor = 0, int $num_results = 20) {
+		if ($num_results < 1) {
+			$num_results = 20;
+		}
+		try {
+			$url = sprintf(self::BASE_VIDEOS_URL, $this->openid, $this->token, $cursor, $num_results);
+			$res = self::get($url);
+			return json_decode($res);
+		} catch (\Exception $e) {
+			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * After Calling the TikTok API via the getUserInfo() method, builds and returns the User object of this class for easier handling
+	 *
+	 * @param int $cursor contains the cursor for pagination
+	 * @param int $num_results max results returned by the API
+	 * @return array collection of Videos objects
+	 * @throws Exception If the API returns an error
+	 */
+	public function getUserVideos(int $cursor = 0, int $num_results = 20) {
+		try {
+			$json = $this->getUserVideosInfo($cursor, $num_results);
+			$videos = [];
+			foreach ($json->data->video_list as $v) {
+				$_v = Video::fromJson($v);
+				$videos[$_v->getID()] = $_v;
+			}
+			$ret = [
+				'cursor' => $json->data->cursor,
+				'has_more' => $json->data->has_more,
+				'videos' => $videos
+			];
+			return $ret;
+		} catch (\Exception $e) {
+			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Helper method to paginate all results from TikTok video pages
+	 *
+	 * @param int $max_pages how many pages to fetch. If it's 0, means unlimited
+	 * @return array collection of Videos objects
+	 * @throws Exception If the API returns an error
+	 */
+	public function getUserVideoPages(int $max_pages = 0) {
+		try {
+			$videos = [];
+			$cursor = 0;
+			$count_pages = 0;
+			while ($vids = $this->getUserVideos($cursor)) {
+				$count_pages++;
+				if ($count_pages > $max_pages && $max_pages > 0) {
+					break;
+				}
+				foreach ($vids['videos'] as $v) {
+					$videos[] = $v;
+				}
+				if ($vids['has_more']) {
+					$cursor = $vids['cursor'];
+				} else {
+					break;
+				}
+			}
+			return $videos;
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
 		}

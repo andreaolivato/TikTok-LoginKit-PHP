@@ -1,6 +1,5 @@
 <?php
 
-// Required to manage STATE parameter
 session_start(); // Important! Required for STATE Variable check and prevent CSRF attacks
 require_once __DIR__.'/../../../autoload.php';
 use gimucco\TikTokLoginKit;
@@ -24,17 +23,21 @@ if (TikTokLoginKit\Connector::receivingResponse()) { // Check if you're receivin
 
 		/****  Your logic to store the access token goes here ****/
 
-
 		$user = $_TK->getUser(); // Retrieve the User Object
 
 		/****  Your logic to store or use the User Info goes here ****/
 
+		$videos = $_TK->getUserVideoPages(); // Retrieve all the Videos of the logged User
+
+		/****  Your logic to store or use the Video Info goes here ****/
+
 		// Print some HTML as example
 		echo <<<HTML
-		<table width="500">
+		<h2>User Info</h2>
+		<table width="400">
 			<tr>
-				<td with="200"><img src="{$user->getAvatarLarger()}"></td>
-				<td>
+				<td with="100"><img src="{$user->getAvatarLarger()}" style="width:100%"></td>
+				<td with="700">
 					<br />
 					<strong>ID</strong>: {$user->getOpenID()}<br /><br />
 					<strong>Name</strong>: {$user->getDisplayName()}
@@ -42,10 +45,32 @@ if (TikTokLoginKit\Connector::receivingResponse()) { // Check if you're receivin
 			</tr>
 		</table>
 HTML;
+		$trs = [];
+		$videos = array_slice($videos, 0, 3); // Only show the first 3 videos
+		foreach ($videos as $v) {
+			$trs[] = <<<HTML
+				<tr>
+					<td width="100"><img src="{$v->getCoverImageURL()}" style="width:100%"></td>
+					<td width="100">
+						<br />
+						<strong>ID</strong>: {$v->getID()}<br /><br />
+						<strong>URL</strong>: {$v->getShareURL()}<br /><br />
+						<strong>Caption</strong>: {$v->getVideoDescription()}
+					</td>
+				</tr>
+HTML;
+		}
+		$trs = implode("\n", $trs);
+		echo <<<HTML
+		<h2>Videos</h2>
+		<table width="800">
+			{$trs}
+		</table>
+HTML;
 	} catch (Exception $e) {
 		echo "Error: ".$e->getMessage();
 		echo '<br /><a href="?">Retry</a>';
 	}
 } else { // Print the initial login button that redirects to TikTok
-	echo '<a href="'.$_TK->getRedirect().'">Log in with TikTok</a>';
+	echo '<a href="'.$_TK->getRedirect([TikTokLoginKit\Connector::PERMISSION_USER_BASIC, TikTokLoginKit\Connector::PERMISSION_VIDEO_LIST]).'">Log in with TikTok</a>';
 }

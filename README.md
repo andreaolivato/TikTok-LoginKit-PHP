@@ -1,16 +1,20 @@
 # TikTok Login Kit for PHP
 **TikTok Login Kit** implementation in PHP based on the [official documentation](https://developers.tiktok.com/doc/login-kit-web).
 
+This is an unofficial SDK for the official Login Kit APIs.
+
 ## Features
 
 Current features include:
 
 - Log in with TikTok
 - Retrieve Basic User Information
+- Retrieve Videos
+- Paginate Videos
 
 ### Currently Working on implementing
 
-- Retrieve Video list
+- share.sound.create
 
 ## Installation
 
@@ -37,8 +41,9 @@ if (TikTokLoginKit\Connector::receivingResponse()) {
 		$token = $_TK->verifyCode($_GET[TikTokLoginKit\Connector::CODE_PARAM]);
 		// Your logic to store the access token
 		$user = $_TK->getUser();
-		// Your logic to manage the user info
-		echo $user->getSampleHTML();
+		// Your logic to manage the User info
+		$videos = $_TK->getUserVideoPages();
+		// Your logic to manage the Video info
 	} catch (Exception $e) {
 		echo "Error: ".$e->getMessage();
 		echo '<br /><a href="?">Retry</a>';
@@ -62,4 +67,4 @@ $_TK = TikTokLoginKit\Connector::fromIni(__DIR__.'/env.ini');
 ```
 
 ## Examples
-Refer to the examples folder for a quick examples of how to use the login
+Refer to the examples folder for a quick examples of how to use the login, fetch and paginate videos
