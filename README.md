@@ -35,7 +35,7 @@ When you register your app, make sure that the **Redirect domain** is set to the
 // Initialize the class. 
 // $client_id and $client_secret are provided by TikTok. 
 // $redirect_uri must be approved in the TikTok developer portal.
-$_TK = new TikTokLoginKit($client_id, $client_secret, $redirect_uri);
+$_TK = new TikTokLoginKit\Connector($client_id, $client_secret, $redirect_uri);
 if (TikTokLoginKit\Connector::receivingResponse()) { 
 	try {
 		$token = $_TK->verifyCode($_GET[TikTokLoginKit\Connector::CODE_PARAM]);
