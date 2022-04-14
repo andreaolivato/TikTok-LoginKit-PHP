@@ -12,7 +12,6 @@
 namespace gimucco\TikTokLoginKit;
 
 class Connector {
-
 	// Base URLs used for the API calls
 	public const BASE_REDIRECT_URL = 'https://open-api.tiktok.com/platform/oauth/connect/?client_key=%s&scope=%s&response_type=code&redirect_uri=%s&state=%s';
 	public const BASE_AUTH_URL = 'https://open-api.tiktok.com/oauth/access_token/?client_key=%s&client_secret=%s&code=%s&grant_type=authorization_code';

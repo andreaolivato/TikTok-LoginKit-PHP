@@ -10,7 +10,7 @@ Example passing the Configuration parameters Inline
 $api_key = ''; // Your API Key, as obtained from TikTok Developers portal
 $api_secret = ''; // Your API Secret, as obtained from TikTok Developers portal
 $redirect_uri = ''; // Where to return after authorization. Must be approved in the TikTok Developers portal
-$_TK = new TikTokLoginKit($api_key, $api_secret, $redirect_uri);
+$_TK = new TikTokLoginKit\Connector($api_key, $api_secret, $redirect_uri);
 */
 
 // Example passing the Configuration parameters via .ini file
