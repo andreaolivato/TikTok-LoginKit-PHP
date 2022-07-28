@@ -16,7 +16,7 @@ class Connector {
 	public const BASE_REDIRECT_URL = 'https://open-api.tiktok.com/platform/oauth/connect/?client_key=%s&scope=%s&response_type=code&redirect_uri=%s&state=%s';
 	public const BASE_AUTH_URL = 'https://open-api.tiktok.com/oauth/access_token/?client_key=%s&client_secret=%s&code=%s&grant_type=authorization_code';
 	public const BASE_USER_URL = 'https://open-api.tiktok.com/oauth/userinfo/?open_id=%s&access_token=%s';
-	public const BASE_VIDEOS_URL = 'https://open-api.tiktok.com/video/list/?open_id=%s&access_token=%s&cursor=%d&max_count=%d';
+	public const BASE_VIDEOS_URL = 'https://open-api.tiktok.com/video/list/';
 
 	// Name of the Session used to store the State. This is required to prevent CSRF attacks
 	public const SESS_STATE = 'TIKTOK_STATE';
@@ -29,6 +29,24 @@ class Connector {
 	public const PERMISSION_VIDEO_LIST = 'video.list';
 	public const PERMISSION_SHARE_SOUND = 'share.sound.create';
 	public const VALID_PERMISSIONS = [self::PERMISSION_USER_BASIC, self::PERMISSION_VIDEO_LIST, self::PERMISSION_SHARE_SOUND];
+
+	// Fields for Video
+	public const FIELD_EMBED_HTML = "embed_html";
+	public const FIELD_EMBED_LINK = "embed_link";
+	public const FIELD_LIKES = "like_count";
+	public const FIELD_COMMENTS = "comment_count";
+	public const FIELD_SHARES = "share_count";
+	public const FIELD_VIEWS = "view_count";
+	public const FIELD_TITLE = "title";
+	public const FIELD_TIME = "create_time";
+	public const FIELD_IMAGE = "cover_image_url";
+	public const FIELD_URL = "share_url";
+	public const FIELD_CAPTION = "video_description";
+	public const FIELD_DURATION = "duration";
+	public const FIELD_HEIGHT = "height";
+	public const FIELD_WIDTH = "width";
+	public const FIELD_ID = "id";
+	public const FIELDS_ALL = [self::FIELD_ID, self::FIELD_WIDTH, self::FIELD_HEIGHT, self::FIELD_DURATION, self::FIELD_CAPTION, self::FIELD_URL, self::FIELD_IMAGE, self::FIELD_TIME, self::FIELD_EMBED_HTML, self::FIELD_EMBED_LINK, self::FIELD_LIKES, self::FIELD_COMMENTS, self::FIELD_SHARES, self::FIELD_VIEWS, self::FIELD_TITLE];
 
 	// .ini file configuration
 	public const INI_CLIENTID = 'client_id';
@@ -188,13 +206,19 @@ class Connector {
 	 * @return object the JSON containing the user data
 	 * @throws Exception If the API returns an error
 	 */
-	public function getUserVideosInfo(int $cursor = 0, int $num_results = 20) {
+	public function getUserVideosInfo(int $cursor = 0, int $num_results = 20, array $fields = self::FIELDS_ALL) {
 		if ($num_results < 1) {
 			$num_results = 20;
 		}
 		try {
-			$url = sprintf(self::BASE_VIDEOS_URL, $this->openid, $this->token, $cursor, $num_results);
-			$res = self::get($url);
+			$data = [
+				'open_id' => $this->openid,
+				'access_token' => $this->token,
+				'cursor' => $cursor,
+				'max_count' => $num_results,
+				'fields' => $fields
+			];
+			$res = self::post(self::BASE_VIDEOS_URL, $data);
 			return json_decode($res);
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
@@ -209,11 +233,11 @@ class Connector {
 	 * @return array collection of Videos objects
 	 * @throws Exception If the API returns an error
 	 */
-	public function getUserVideos(int $cursor = 0, int $num_results = 20) {
+	public function getUserVideos(int $cursor = 0, int $num_results = 20, array $fields = self::FIELDS_ALL) {
 		try {
-			$json = $this->getUserVideosInfo($cursor, $num_results);
+			$json = $this->getUserVideosInfo($cursor, $num_results, $fields);
 			$videos = [];
-			foreach ($json->data->video_list as $v) {
+			foreach ($json->data->videos as $v) {
 				$_v = Video::fromJson($v);
 				$videos[$_v->getID()] = $_v;
 			}
@@ -235,12 +259,12 @@ class Connector {
 	 * @return array collection of Videos objects
 	 * @throws Exception If the API returns an error
 	 */
-	public function getUserVideoPages(int $max_pages = 0) {
+	public function getUserVideoPages(int $max_pages = 0, array $fields = self::FIELDS_ALL) {
 		try {
 			$videos = [];
 			$cursor = 0;
 			$count_pages = 0;
-			while ($vids = $this->getUserVideos($cursor)) {
+			while ($vids = $this->getUserVideos($cursor, 20, $fields)) {
 				$count_pages++;
 				if ($count_pages > $max_pages && $max_pages > 0) {
 					break;
@@ -293,6 +317,40 @@ class Connector {
 			CURLOPT_TIMEOUT => 30,
 			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 			CURLOPT_CUSTOMREQUEST => "GET"
+		]);
+
+		$response = curl_exec($curl);
+		$err = curl_error($curl);
+
+		curl_close($curl);
+
+		if ($err) {
+			return false;
+		} else {
+			return $response;
+		}
+	}
+
+	/**
+	 * Basic HTTP wrapper to perform POST calls to the TikTok Api
+	 *
+	 * @param string $url The URL to call
+	 * @return string the response of the call or false
+	 */
+	private static function post(string $url, array $data) {
+		$curl = curl_init();
+
+		curl_setopt_array($curl, [
+			CURLOPT_URL => $url,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_ENCODING => "",
+			CURLOPT_MAXREDIRS => 10,
+			CURLOPT_TIMEOUT => 30,
+			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST => "POST",
+			CURLOPT_HTTPHEADER => ['Content-Type:application/json'],
+			CURLOPT_POSTFIELDS => json_encode($data)
 		]);
 
 		$response = curl_exec($curl);
