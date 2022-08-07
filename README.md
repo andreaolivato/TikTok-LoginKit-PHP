@@ -8,9 +8,10 @@ This is an unofficial SDK for the official Login Kit APIs.
 Current features include:
 
 - Log in with TikTok
-- Retrieve Basic User Information
+- Retrieve Basic User Information (updated with POST params)
 - Retrieve Videos
 - Paginate Videos
+- Refresh expired Token
 
 ### Currently Working on implementing
 
