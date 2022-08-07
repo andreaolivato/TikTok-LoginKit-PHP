@@ -11,10 +11,13 @@
 
 namespace gimucco\TikTokLoginKit;
 
+use Exception;
+
 class Connector {
 	// Base URLs used for the API calls
 	public const BASE_REDIRECT_URL = 'https://open-api.tiktok.com/platform/oauth/connect/?client_key=%s&scope=%s&response_type=code&redirect_uri=%s&state=%s';
 	public const BASE_AUTH_URL = 'https://open-api.tiktok.com/oauth/access_token/?client_key=%s&client_secret=%s&code=%s&grant_type=authorization_code';
+	public const BASE_REFRESH_URL = 'https://open-api.tiktok.com/oauth/refresh_token/?client_key=%s&grant_type=refresh_token&refresh_token=%s';
 	public const BASE_USER_URL = 'https://open-api.tiktok.com/oauth/userinfo/?open_id=%s&access_token=%s';
 	public const BASE_VIDEOS_URL = 'https://open-api.tiktok.com/video/list/';
 
@@ -180,6 +183,28 @@ class Connector {
 	 */
 	public function setOpenID(string $openid) {
 		$this->openid = $openid;
+	}
+
+	/**
+	 * Retrieves the updated Access Token from the Refresh Token
+	 *
+	 * @param string $refresh_token
+	 * @return mixed
+	 * @throws Exception
+	 */
+	public function refreshToken(string $refresh_token) {
+		try {
+			$url = sprintf(self::BASE_REFRESH_URL, $this->client_id, $refresh_token);
+			$res = self::get($url);
+			$json = json_decode($res);
+			if (empty($json->data->access_token)) {
+				return false;
+			}
+			$this->setToken($json->data->access_token);
+			return $json->data->access_token;
+		} catch (\Exception $e) {
+			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		}
 	}
 
 	/**
