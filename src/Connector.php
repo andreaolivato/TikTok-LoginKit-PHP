@@ -186,6 +186,18 @@ class Connector {
 	}
 
 	/**
+	 * Gets the Access Token, if set
+	 *
+	 * @return string
+	 */
+	public function getToken() {
+		if (empty($this->token)) {
+			return '';
+		}
+		return $this->token;
+	}
+
+	/**
 	 * Retrieves the updated Access Token from the Refresh Token
 	 *
 	 * @param string $refresh_token
