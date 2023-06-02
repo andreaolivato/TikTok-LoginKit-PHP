@@ -269,7 +269,6 @@ class User {
 		if ($m && !empty($m[1])) {
 			return trim($m[1]);
 		}
-		echo "FAIL";
-		die;
+		return '';
 	}
 }
