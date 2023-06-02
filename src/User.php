@@ -265,7 +265,11 @@ class User {
 	}
 
 	private static function parseHandleFromUrl(string $url) {
-		preg_match('@www.tiktok.com%2F%40([^%]+)%@', $url, $m);
+		preg_match('@www.tiktok.com%2F%40([^%]+)@', $url, $m);
+		if ($m && !empty($m[1])) {
+			return trim($m[1]);
+		}
+		preg_match('@www.tiktok.com/\@([^\?]+)@', $url, $m);
 		if ($m && !empty($m[1])) {
 			return trim($m[1]);
 		}
