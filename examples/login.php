@@ -1,7 +1,10 @@
 <?php
 
 session_start(); // Important! Required for STATE Variable check and prevent CSRF attacks
-require_once __DIR__.'/../../../autoload.php';
+require_once __DIR__.'/../src/Connector.php';
+require_once __DIR__.'/../src/TokenInfo.php';
+require_once __DIR__.'/../src/User.php';
+require_once __DIR__.'/../src/Video.php';
 use gimucco\TikTokLoginKit;
 
 /*
@@ -27,24 +30,24 @@ if (TikTokLoginKit\Connector::receivingResponse()) { // Check if you're receivin
 
 		/****  Your logic to store or use the User Info goes here ****/
 
-		$videos = $_TK->getUserVideoPages(); // Retrieve all the Videos of the logged User
+		$videos = $_TK->getUserVideoPages(2); // Retrieve 2 pages the Videos of the logged User
 
 		/****  Your logic to store or use the Video Info goes here ****/
 
 		// Print some HTML as example
 		echo <<<HTML
-		<h2>User Info</h2>
-		<table width="400">
-			<tr>
-				<td with="100"><img src="{$user->getAvatarLarger()}" style="width:100%"></td>
-				<td with="700">
-					<br />
-					<strong>ID</strong>: {$user->getOpenID()}<br /><br />
-					<strong>Name</strong>: {$user->getDisplayName()}
-				</td>
-			</tr>
-		</table>
-HTML;
+			<h2>User Info</h2>
+			<table width="400">
+				<tr>
+					<td with="100"><img src="{$user->getBestAvatar()}" style="width:100%"></td>
+					<td with="700">
+						<br />
+						<strong>ID</strong>: {$user->getOpenID()}<br /><br />
+						<strong>Name</strong>: {$user->getDisplayName()}
+					</td>
+				</tr>
+			</table>
+		HTML;
 		$trs = [];
 		$videos = array_slice($videos, 0, 3); // Only show the first 3 videos
 		foreach ($videos as $v) {
@@ -58,15 +61,15 @@ HTML;
 						<strong>Caption</strong>: {$v->getVideoDescription()}
 					</td>
 				</tr>
-HTML;
+			HTML;
 		}
 		$trs = implode("\n", $trs);
 		echo <<<HTML
-		<h2>Videos</h2>
-		<table width="800">
-			{$trs}
-		</table>
-HTML;
+			<h2>Videos</h2>
+			<table width="800">
+				{$trs}
+			</table>
+		HTML;
 	} catch (Exception $e) {
 		echo "Error: ".$e->getMessage();
 		echo '<br /><a href="?">Retry</a>';

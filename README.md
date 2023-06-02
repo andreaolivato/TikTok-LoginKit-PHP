@@ -1,21 +1,20 @@
 # TikTok Login Kit for PHP
-**TikTok Login Kit** implementation in PHP based on the [official documentation](https://developers.tiktok.com/doc/login-kit-web).
+**TikTok Login Kit** implementation in PHP based on the [official documentation](https://developers.tiktok.com/doc/login-kit-web/).
 
 This is an unofficial SDK for the official Login Kit APIs.
 
 ## Features
 
+**The library has been updated to use the new TikTok v2 API version**
+
 Current features include:
 
 - Log in with TikTok
-- Retrieve Basic User Information (updated with POST params)
+- Retrieve Basic User Information
+- Retrieve Advanced User Information
 - Retrieve Videos
 - Paginate Videos
-- Refresh expired Token
-
-### Currently Working on implementing
-
-- share.sound.create
+- Refresh Expired Token
 
 ## Installation
 
@@ -29,7 +28,7 @@ composer require gimucco/tiktok-loginkit
 
 You need to have your app set up and approved in the [TikTok Developer Portal](https://developers.tiktok.com/). 
 
-When you register your app, make sure that the **Redirect domain** is set to the actual **Redirect URI** you use to initialize the class. Even if the Official TikTok Documentation says "domain", they actually expect the full URL. 
+If you're upgrading to the v2 TikTok API version, make sure you've added your *Redirect URLs* and selected the proper scopes. 
 
 ## Code Example for Logging in and retrieving basic info
 ```

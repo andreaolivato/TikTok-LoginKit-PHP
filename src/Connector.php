@@ -15,11 +15,12 @@ use Exception;
 
 class Connector {
 	// Base URLs used for the API calls
-	public const BASE_REDIRECT_URL = 'https://open-api.tiktok.com/platform/oauth/connect/?client_key=%s&scope=%s&response_type=code&redirect_uri=%s&state=%s';
-	public const BASE_AUTH_URL = 'https://open-api.tiktok.com/oauth/access_token/?client_key=%s&client_secret=%s&code=%s&grant_type=authorization_code';
-	public const BASE_REFRESH_URL = 'https://open-api.tiktok.com/oauth/refresh_token/?client_key=%s&grant_type=refresh_token&refresh_token=%s';
-	public const BASE_USER_URL = 'https://open-api.tiktok.com/oauth/userinfo/?open_id=%s&access_token=%s';
-	public const BASE_VIDEOS_URL = 'https://open-api.tiktok.com/video/list/';
+	public const BASE_V2 = 'https://open.tiktokapis.com/v2/';
+	public const BASE_REDIRECT_URL = 'https://www.tiktok.com/v2/auth/authorize/?client_key=%s&scope=%s&response_type=code&redirect_uri=%s&state=%s';
+	public const BASE_AUTH_URL = self::BASE_V2.'oauth/token/';
+	public const BASE_USER_URL = self::BASE_V2.'user/info/?fields=%s';
+	public const BASE_VIDEOS_URL = self::BASE_V2.'video/list/?fields=%s';
+	public const BASE_VIDEOQUERY_URL = self::BASE_V2.'video/query/?fields=%s';
 
 	// Name of the Session used to store the State. This is required to prevent CSRF attacks
 	public const SESS_STATE = 'TIKTOK_STATE';
@@ -29,9 +30,27 @@ class Connector {
 
 	// Permissions List
 	public const PERMISSION_USER_BASIC = 'user.info.basic';
+	public const PERMISSION_USER_PROFILE = 'user.info.profile';
+	public const PERMISSION_USER_STATS = 'user.info.stats';
 	public const PERMISSION_VIDEO_LIST = 'video.list';
 	public const PERMISSION_SHARE_SOUND = 'share.sound.create';
-	public const VALID_PERMISSIONS = [self::PERMISSION_USER_BASIC, self::PERMISSION_VIDEO_LIST, self::PERMISSION_SHARE_SOUND];
+	public const VALID_PERMISSIONS = [self::PERMISSION_USER_BASIC, self::PERMISSION_VIDEO_LIST, self::PERMISSION_SHARE_SOUND, self::PERMISSION_USER_PROFILE, self::PERMISSION_USER_STATS];
+
+	// Fields for User
+	public const FIELD_U_OPENID = 'open_id';
+	public const FIELD_U_UNIONID = 'union_id';
+	public const FIELD_U_AVATAR = 'avatar_url';
+	public const FIELD_U_AVATAR_THUMB = 'avatar_url_100';
+	public const FIELD_U_AVATAR_LARGER = 'avatar_large_url';
+	public const FIELD_U_DISPLAYNAME = 'display_name';
+	public const FIELD_U_BIO = 'bio_description';
+	public const FIELD_U_URL = 'profile_deep_link';
+	public const FIELD_U_ISVERIFIED = 'is_verified';
+	public const FIELD_U_FOLLOWERS = 'follower_count';
+	public const FIELD_U_FOLLOWING = 'following_count';
+	public const FIELD_U_LIKES = 'likes_count';
+	public const FIELD_U_NUMVIDEOS = 'video_count';
+	public const FIELDS_U_ALL = [self::FIELD_U_OPENID, self::FIELD_U_UNIONID, self::FIELD_U_AVATAR, self::FIELD_U_AVATAR_THUMB, self::FIELD_U_AVATAR_LARGER, self::FIELD_U_DISPLAYNAME, self::FIELD_U_BIO, self::FIELD_U_URL, self::FIELD_U_ISVERIFIED, self::FIELD_U_FOLLOWERS, self::FIELD_U_FOLLOWING, self::FIELD_U_LIKES, self::FIELD_U_NUMVIDEOS];
 
 	// Fields for Video
 	public const FIELD_EMBED_HTML = "embed_html";
@@ -140,7 +159,7 @@ class Connector {
 	 * Set the Token and User ID within the class for further use
 	 *
 	 * @param string $code contains the code received via the GET parameter
-	 * @return object the Access Token Info
+	 * @return TokenInfo the Access Token Info
 	 * @throws Exception If the STATE is not valid or if the API return error
 	 */
 	public function verifyCode(string $code) {
@@ -150,15 +169,22 @@ class Connector {
 		}
 
 		try {
-			$url = sprintf(self::BASE_AUTH_URL, $this->client_id, $this->client_secret, $code);
-			$res = self::get($url);
+			$data = [
+				'client_key' => $this->client_id,
+				'client_secret' => $this->client_secret,
+				'code' => $code,
+				'grant_type' => 'authorization_code',
+				'redirect_uri' => $this->redirect
+			];
+			$res = self::post(self::BASE_AUTH_URL, $data);
 			$json = json_decode($res);
-			if (isset($json->data->access_token) && $json->data->access_token) {
-				$this->setToken($json->data->access_token);
-				$this->setOpenID($json->data->open_id);
-				return $json;
+			$token = TokenInfo::fromJson($json);
+			if ($token && $token->getAccessToken()) {
+				$this->setToken($token->getAccessToken());
+				$this->setOpenID($token->getOpenId());
+				return $token;
 			} else {
-				throw new \Exception('TikTok Api Error: '.$json->data->description);
+				throw new \Exception('TikTok Api Error: '.$json->error_description);
 			}
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
@@ -186,6 +212,15 @@ class Connector {
 	}
 
 	/**
+	 * Gets the User Open ID
+	 *
+	 * @return string the Open ID
+	 */
+	public function getOpenID() {
+		return $this->openid;
+	}
+
+	/**
 	 * Gets the Access Token, if set
 	 *
 	 * @return string
@@ -200,20 +235,26 @@ class Connector {
 	/**
 	 * Retrieves the updated Access Token from the Refresh Token
 	 *
-	 * @param string $refresh_token
-	 * @return mixed
+	 * @param string $refresh_token the refresh token
+	 * @return TokenInfo contains the info about the token
 	 * @throws Exception
 	 */
 	public function refreshToken(string $refresh_token) {
 		try {
-			$url = sprintf(self::BASE_REFRESH_URL, $this->client_id, $refresh_token);
-			$res = self::get($url);
+			$data = [
+				'client_key' => $this->client_id,
+				'client_secret' => $this->client_secret,
+				'grant_type' => 'refresh_token',
+				'refresh_token' => $refresh_token
+			];
+			$res = self::post(self::BASE_AUTH_URL, $data);
 			$json = json_decode($res);
-			if (empty($json->data->access_token)) {
+			$token = TokenInfo::fromJson($json);
+			if (!$token || !$token->getAccessToken()) {
 				return false;
 			}
-			$this->setToken($json->data->access_token);
-			return $json->data->access_token;
+			$this->setToken($token->getAccessToken());
+			return $token;
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
 		}
@@ -222,13 +263,19 @@ class Connector {
 	/**
 	 * Calls the TikTok APIs to retrieve all available user information for the logged user
 	 *
+	 * @param array $fields array containing all the fields you want to retrieve
 	 * @return object the JSON containing the user data
 	 * @throws Exception If the API returns an error
 	 */
-	public function getUserInfo() {
+	public function getUserInfo(array $fields = [self::FIELD_U_OPENID, self::FIELD_U_UNIONID, self::FIELD_U_AVATAR, self::FIELD_U_DISPLAYNAME]) {
+		foreach ($fields as $f) {
+			if (!in_array($f, self::FIELDS_U_ALL)) {
+				throw new \Exception('TikTok Api Error: Invalid field '.$f);
+			}
+		}
 		try {
-			$url = sprintf(self::BASE_USER_URL, $this->openid, $this->token);
-			$res = self::get($url);
+			$url = sprintf(self::BASE_USER_URL, implode(',', $fields));
+			$res = $this->getWithAuth($url);
 			return json_decode($res);
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
@@ -249,13 +296,11 @@ class Connector {
 		}
 		try {
 			$data = [
-				'open_id' => $this->openid,
-				'access_token' => $this->token,
 				'cursor' => $cursor,
-				'max_count' => $num_results,
-				'fields' => $fields
+				'max_count' => $num_results
 			];
-			$res = self::post(self::BASE_VIDEOS_URL, $data);
+			$url = sprintf(self::BASE_VIDEOS_URL, implode(',', $fields));
+			$res = $this->postWithAuth($url, $data);
 			return json_decode($res);
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
@@ -263,17 +308,61 @@ class Connector {
 	}
 
 	/**
-	 * After Calling the TikTok API via the getUserInfo() method, builds and returns the User object of this class for easier handling
+	 * Retrieves information about a single video
+	 *
+	 * @param integer $video_id the id of the video
+	 * @param array $fields array containing the list of fields you'd like returned
+	 * @return object the JSON info of the video or empty
+	 */
+	public function getSingleVideoInfo(int $video_id, array $fields = self::FIELDS_ALL) {
+		try {
+			$data = [
+				'filters' => [
+					'video_ids' => [strval($video_id)]
+				]
+			];
+			$url = sprintf(self::BASE_VIDEOQUERY_URL, implode(',', $fields));
+			$res = $this->postWithAuth($url, $data);
+			$json = json_decode($res);
+			if (empty($json->data->videos[0])) {
+				return json_decode('{}');
+			}
+			return $json->data->videos[0];
+		} catch (\Exception $e) {
+			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Retrieves a single Video object after retrieving the JSON from getSingleVideoInfo
+	 *
+	 * @param integer $video_id the id of the video
+	 * @param array $fields array containing the list of fields you'd like returned
+	 * @return Video the Video object with all the information
+	 */
+	public function getSingleVideo(int $video_id, array $fields = self::FIELDS_ALL) {
+		try {
+			$json = $this->getSingleVideoInfo($video_id, $fields);
+			return Video::fromJson($json);
+		} catch (\Exception $e) {
+			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * After Calling the TikTok API via the getUserVidoesInfo() method, builds and returns an array of Video object of this class for easier handling
 	 *
 	 * @param int $cursor contains the cursor for pagination
 	 * @param int $num_results max results returned by the API
-	 * @return array collection of Videos objects
+	 * @param array $fields fields to be returned by the API
+	 * @return Video[] collection of Videos objects
 	 * @throws Exception If the API returns an error
 	 */
 	public function getUserVideos(int $cursor = 0, int $num_results = 20, array $fields = self::FIELDS_ALL) {
 		try {
 			$json = $this->getUserVideosInfo($cursor, $num_results, $fields);
 			$videos = [];
+			echo "N:".sizeof($json->data->videos)."<br/>";
 			foreach ($json->data->videos as $v) {
 				$_v = Video::fromJson($v);
 				$videos[$_v->getID()] = $_v;
@@ -324,25 +413,54 @@ class Connector {
 	/**
 	 * After Calling the TikTok API via the getUserInfo() method, builds and returns the User object of this class for easier handling
 	 *
+	 * @param array $fields array containing all the fields you want to retrieve
 	 * @return User the User object
 	 * @throws Exception If the API returns an error
 	 */
-	public function getUser() {
+	public function getUser(array $fields = [self::FIELD_U_OPENID, self::FIELD_U_UNIONID, self::FIELD_U_AVATAR, self::FIELD_U_DISPLAYNAME], bool $get_username = false) {
 		try {
-			$json = $this->getUserInfo();
-			return User::fromJson($json);
+			$json = $this->getUserInfo($fields);
+			return User::fromJson($json, $get_username);
 		} catch (\Exception $e) {
 			throw new \Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
 	/**
-	 * Basic HTTP wrapper to perform calls to the TikTok Api
+	 * Get protected resources via GET, passing the oAuth token
 	 *
 	 * @param string $url The URL to call
 	 * @return string the response of the call or false
 	 */
-	private static function get($url) {
+	private function getWithAuth(string $url) {
+		$headers = [
+			'Authorization: Bearer '.$this->getToken()
+		];
+		return self::get($url, $headers);
+	}
+
+	/**
+	 * Get protected resources via POST, passing the oAuth token
+	 *
+	 * @param string $url The URL to call
+	 * @param array $data the array containing the POST data in associative format [key: value]
+	 * @return string the response of the call or false
+	 */
+	private function postWithAuth(string $url, array $data) {
+		$headers = [
+			'Authorization: Bearer '.$this->getToken()
+		];
+		return self::post($url, $data, $headers, true);
+	}
+
+	/**
+	 * Basic HTTP wrapper to perform calls to the TikTok Api
+	 *
+	 * @param string $url The URL to call
+	 * @param array $headers optional headers
+	 * @return string the response of the call or false
+	 */
+	private static function get(string $url, array $headers = []) {
 		$curl = curl_init();
 
 		curl_setopt_array($curl, [
@@ -352,8 +470,8 @@ class Connector {
 			CURLOPT_ENCODING => "",
 			CURLOPT_MAXREDIRS => 10,
 			CURLOPT_TIMEOUT => 30,
-			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST => "GET"
+			CURLOPT_CUSTOMREQUEST => "GET",
+			CURLOPT_HTTPHEADER => $headers
 		]);
 
 		$response = curl_exec($curl);
@@ -372,11 +490,21 @@ class Connector {
 	 * Basic HTTP wrapper to perform POST calls to the TikTok Api
 	 *
 	 * @param string $url The URL to call
+	 * @param array $data the array containing the POST data in associative format [key: value]
+	 * @param array $headers additional headers to pass to the CURL call
+	 * @param bool $is_json wether to send this as JSON body
 	 * @return string the response of the call or false
 	 */
-	private static function post(string $url, array $data) {
+	private static function post(string $url, array $data, array $headers = [], bool $is_json = false) {
 		$curl = curl_init();
-
+		$headers[] = 'Cache-Control: no-cache';
+		$post = http_build_query($data);
+		if ($is_json) {
+			$post = json_encode($data);
+			$headers[] = 'Content-Type: application/json';
+		} else {
+			$headers[] = 'Content-Type: application/x-www-form-urlencoded';
+		}
 		curl_setopt_array($curl, [
 			CURLOPT_URL => $url,
 			CURLOPT_RETURNTRANSFER => true,
@@ -384,10 +512,9 @@ class Connector {
 			CURLOPT_ENCODING => "",
 			CURLOPT_MAXREDIRS => 10,
 			CURLOPT_TIMEOUT => 30,
-			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST => "POST",
-			CURLOPT_HTTPHEADER => ['Content-Type:application/json'],
-			CURLOPT_POSTFIELDS => json_encode($data)
+			CURLOPT_POST => 1,
+			CURLOPT_HTTPHEADER => $headers,
+			CURLOPT_POSTFIELDS => $post
 		]);
 
 		$response = curl_exec($curl);
