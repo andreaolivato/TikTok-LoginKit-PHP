@@ -362,7 +362,6 @@ class Connector {
 		try {
 			$json = $this->getUserVideosInfo($cursor, $num_results, $fields);
 			$videos = [];
-			echo "N:".sizeof($json->data->videos)."<br/>";
 			foreach ($json->data->videos as $v) {
 				$_v = Video::fromJson($v);
 				$videos[$_v->getID()] = $_v;
