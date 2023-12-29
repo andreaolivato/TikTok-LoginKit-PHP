@@ -3,7 +3,7 @@
 /*
  * (c) Andrea Olivato <andrea@lnk.bio>
  *
- * Helper class to structurise the User object
+ * Helper class to structure the User object
  *
  * This source file is subject to the GNU General Public License v3.0 license that is bundled
  * with this source code in the file LICENSE.

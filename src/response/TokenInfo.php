@@ -3,13 +3,15 @@
 /*
  * (c) Andrea Olivato <andrea@lnk.bio>
  *
- * Helper class to structurise the Token object
+ * Helper class to structure the Token object
  *
  * This source file is subject to the GNU General Public License v3.0 license that is bundled
  * with this source code in the file LICENSE.
  */
 
-namespace gimucco\TikTokLoginKit;
+namespace gimucco\TikTokLoginKit\response;
+
+use Exception;
 
 class TokenInfo {
 	private string $access_token;
@@ -30,9 +32,16 @@ class TokenInfo {
 		$this->token_type = $token_type;
 	}
 
+	/**
+	 * Parse information from the JSON returned and provide an object
+	 *
+	 * @param object $json
+	 * @return TokenInfo
+	 * @throws Exception
+	 */
 	public static function fromJson(object $json) {
 		if (empty($json->access_token) || empty($json->open_id)) {
-			return;
+			throw new \Exception('Invalid TikTok JSON: '.var_export($json, 1));
 		}
 		$access_token = $json->access_token;
 		$open_id = $json->open_id;

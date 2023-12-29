@@ -11,7 +11,10 @@
 
 namespace gimucco\TikTokLoginKit;
 
+use gimucco\TikTokLoginKit\response\TokenInfo;
 use Exception;
+use gimucco\TikTokLoginKit\response\CreatorQuery;
+use gimucco\TikTokLoginKit\response\PublishStatus;
 
 class Connector {
 	// Base URLs used for the API calls
@@ -21,6 +24,10 @@ class Connector {
 	public const BASE_USER_URL = self::BASE_V2.'user/info/?fields=%s';
 	public const BASE_VIDEOS_URL = self::BASE_V2.'video/list/?fields=%s';
 	public const BASE_VIDEOQUERY_URL = self::BASE_V2.'video/query/?fields=%s';
+	public const BASE_CREATOR_QUERY = self::BASE_V2.'post/publish/creator_info/query/';
+	public const BASE_POST_PUBLISH = self::BASE_V2.'post/publish/video/init/';
+	public const BASE_PUBLISH_STATUS = self::BASE_V2.'post/publish/status/fetch/';
+	public const BASE_PHOTO_PUBLSH = self::BASE_V2.'post/publish/content/init/';
 
 	// Name of the Session used to store the State. This is required to prevent CSRF attacks
 	public const SESS_STATE = 'TIKTOK_STATE';
@@ -34,7 +41,8 @@ class Connector {
 	public const PERMISSION_USER_STATS = 'user.info.stats';
 	public const PERMISSION_VIDEO_LIST = 'video.list';
 	public const PERMISSION_SHARE_SOUND = 'share.sound.create';
-	public const VALID_PERMISSIONS = [self::PERMISSION_USER_BASIC, self::PERMISSION_VIDEO_LIST, self::PERMISSION_SHARE_SOUND, self::PERMISSION_USER_PROFILE, self::PERMISSION_USER_STATS];
+	public const PERMISSION_VIDEO_PUBLISH = 'video.publish';
+	public const VALID_PERMISSIONS = [self::PERMISSION_USER_BASIC, self::PERMISSION_VIDEO_LIST, self::PERMISSION_SHARE_SOUND, self::PERMISSION_USER_PROFILE, self::PERMISSION_USER_STATS, self::PERMISSION_VIDEO_PUBLISH];
 
 	// Fields for User
 	public const FIELD_U_OPENID = 'open_id';
@@ -69,6 +77,13 @@ class Connector {
 	public const FIELD_WIDTH = "width";
 	public const FIELD_ID = "id";
 	public const FIELDS_ALL = [self::FIELD_ID, self::FIELD_WIDTH, self::FIELD_HEIGHT, self::FIELD_DURATION, self::FIELD_CAPTION, self::FIELD_URL, self::FIELD_IMAGE, self::FIELD_TIME, self::FIELD_EMBED_HTML, self::FIELD_EMBED_LINK, self::FIELD_LIKES, self::FIELD_COMMENTS, self::FIELD_SHARES, self::FIELD_VIEWS, self::FIELD_TITLE];
+
+	// Privacy Options for publishing posts
+	public const PRIVACY_PUBLIC = 'PUBLIC_TO_EVERYONE';
+	public const PRIVACY_FRIENDS = 'MUTUAL_FOLLOW_FRIENDS';
+	public const PRIVACY_FOLLOWERS = 'FOLLOWER_OF_CREATOR';
+	public const PRIVACY_PRIVATE = 'SELF_ONLY';
+	public const VALID_PRIVACY = [self::PRIVACY_PUBLIC, self::PRIVACY_FRIENDS, self::PRIVACY_FOLLOWERS, self::PRIVACY_PRIVATE];
 
 	// .ini file configuration
 	public const INI_CLIENTID = 'client_id';
@@ -108,12 +123,12 @@ class Connector {
 	 */
 	public static function fromIni(string $path) {
 		if (!file_exists($path)) {
-			throw new \Exception('Ini file not found in requested path: '.$path);
+			throw new Exception('Ini file not found in requested path: '.$path);
 		}
 		$cfg = parse_ini_file($path);
 		foreach (self::INI_REQUIRED as $required_info) {
 			if (!isset($cfg[$required_info])) {
-				throw new \Exception('Ini file is missing required info: '.$required_info);
+				throw new Exception('Ini file is missing required info: '.$required_info);
 			}
 		}
 		return new self($cfg[self::INI_CLIENTID], $cfg[self::INI_CLIENTSECRET], $cfg[self::INI_REDIRECTURI]);
@@ -131,7 +146,7 @@ class Connector {
 	public function getRedirect(array $permissions = [self::PERMISSION_USER_BASIC]) {
 		foreach ($permissions as $permission) {
 			if (!in_array($permission, self::VALID_PERMISSIONS)) {
-				throw new \Exception('Invalid Permission Requested. Valid permissions are: '.implode(", ", self::VALID_PERMISSIONS));
+				throw new Exception('Invalid Permission Requested. Valid permissions are: '.implode(", ", self::VALID_PERMISSIONS));
 			}
 		}
 		$state = uniqid();
@@ -164,7 +179,7 @@ class Connector {
 	 */
 	public function verifyCode(string $code) {
 		if (!isset($_SESSION[self::SESS_STATE]) || !isset($_GET['state']) || $_SESSION[self::SESS_STATE] != $_GET['state']) {
-			throw new \Exception('Invalid State Variable: Session: '.$_SESSION[self::SESS_STATE].' VS GET : '.$_GET['state']);
+			throw new Exception('Invalid State Variable: Session: '.$_SESSION[self::SESS_STATE].' VS GET : '.$_GET['state']);
 			return false;
 		}
 
@@ -184,10 +199,10 @@ class Connector {
 				$this->setOpenID($token->getOpenId());
 				return $token;
 			} else {
-				throw new \Exception('TikTok Api Error: '.$json->error_description);
+				throw new Exception('TikTok Api Error: '.$json->error_description);
 			}
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -255,8 +270,8 @@ class Connector {
 			}
 			$this->setToken($token->getAccessToken());
 			return $token;
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -270,15 +285,15 @@ class Connector {
 	public function getUserInfo(array $fields = [self::FIELD_U_OPENID, self::FIELD_U_UNIONID, self::FIELD_U_AVATAR, self::FIELD_U_DISPLAYNAME]) {
 		foreach ($fields as $f) {
 			if (!in_array($f, self::FIELDS_U_ALL)) {
-				throw new \Exception('TikTok Api Error: Invalid field '.$f);
+				throw new Exception('TikTok Api Error: Invalid field '.$f);
 			}
 		}
 		try {
 			$url = sprintf(self::BASE_USER_URL, implode(',', $fields));
 			$res = $this->getWithAuth($url);
 			return json_decode($res);
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -302,8 +317,8 @@ class Connector {
 			$url = sprintf(self::BASE_VIDEOS_URL, implode(',', $fields));
 			$res = $this->postWithAuth($url, $data);
 			return json_decode($res);
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -328,8 +343,8 @@ class Connector {
 				return json_decode('{}');
 			}
 			return $json->data->videos[0];
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -344,8 +359,8 @@ class Connector {
 		try {
 			$json = $this->getSingleVideoInfo($video_id, $fields);
 			return Video::fromJson($json);
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -372,8 +387,8 @@ class Connector {
 				'videos' => $videos
 			];
 			return $ret;
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -404,8 +419,8 @@ class Connector {
 				}
 			}
 			return $videos;
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
 		}
 	}
 
@@ -420,8 +435,166 @@ class Connector {
 		try {
 			$json = $this->getUserInfo($fields);
 			return User::fromJson($json, $get_username);
-		} catch (\Exception $e) {
-			throw new \Exception('TikTok Api Error: '.$e->getMessage());
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Mandatory query to call to retrieve user info before upload. Returns a JSON object that you can parse based on your app logic
+	 *
+	 * @return object Json Array with info
+	 * @throws Exception
+	 */
+	public function getCreatorQueryInfo() {
+		try {
+			$res = $this->postWithAuth(self::BASE_CREATOR_QUERY, []);
+			return json_decode($res);
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
+		}
+		return [];
+	}
+
+	/**
+	 * Mandatory query to call to retrieve user info before upload. Returns a JSON object that you can parse based on your app logic
+	 *
+	 * @return CreatorQuery
+	 * @throws Exception
+	 */
+	public function getCreatorQuery() {
+		try {
+			$res = $this->getCreatorQueryInfo();
+			return CreatorQuery::fromJson($res);
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
+		}
+		return [];
+	}
+
+	/**
+	 * Publish a new TikTok Image or Carousel from an array of remote URLs
+	 *
+	 * @param array $urls array of URLs each with a photo URL
+	 * @param string $title
+	 * @param string $description
+	 * @param string $privacy_level
+	 * @param bool $disable_comment
+	 * @param bool $disable_duet
+	 * @param bool $disable_stitch
+	 * @param int $video_cover_timestamp_ms
+	 * @return object json object
+	 * @throws Exception
+	 */
+	public function publishPhotosFromURL(array $urls, string $title, string $description, string $privacy_level = self::PRIVACY_PRIVATE, bool $disable_comment = false, bool $auto_add_music = false) {
+		if (!self::isValidPrivacyLevel($privacy_level)) {
+			throw new Exception('TikTok Invalid Privacy Level Provided: '.$privacy_level.". Must be: ".implode(', ', self::VALID_PRIVACY));
+		}
+		try {
+			$data = [
+				'post_info' => [
+					'title' => $title,
+					'description' => $description,
+					'privacy_level' => $privacy_level,
+					'disable_comment' => $disable_comment,
+					'auto_add_music' => $auto_add_music
+				],
+				'source_info' => [
+					'source' => 'PULL_FROM_URL',
+					'photo_cover_index' => 0,
+					'photo_images' => $urls
+				],
+				'post_mode' => 'DIRECT_POST',
+				'media_type' => 'PHOTO'
+			];
+			$res = $this->postWithAuth(self::BASE_PHOTO_PUBLSH, $data);
+			return json_decode($res);
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Publish a new TikTok video from a remote URL
+	 *
+	 * @param string $url
+	 * @param string $title
+	 * @param string $privacy_level
+	 * @param bool $disable_comment
+	 * @param bool $disable_duet
+	 * @param bool $disable_stitch
+	 * @param int $video_cover_timestamp_ms
+	 * @return object json object
+	 * @throws Exception
+	 */
+	public function publishVideoFromURL(string $url, string $title, string $privacy_level = self::PRIVACY_PRIVATE, bool $disable_comment = false, bool $disable_duet = false, bool $disable_stitch = false, int $video_cover_timestamp_ms = 1000) {
+		if (!self::isValidPrivacyLevel($privacy_level)) {
+			throw new Exception('TikTok Invalid Privacy Level Provided: '.$privacy_level.". Must be: ".implode(', ', self::VALID_PRIVACY));
+		}
+		try {
+			$data = [
+				'post_info' => [
+					'title' => $title,
+					'privacy_level' => $privacy_level,
+					'disable_comment' => $disable_comment,
+					'disable_duet' => $disable_duet,
+					'disable_stitch' => $disable_stitch,
+					'video_cover_timestamp_ms' => $video_cover_timestamp_ms
+				],
+				'source_info' => [
+					'source' => 'PULL_FROM_URL',
+					'video_url' => $url
+				]
+			];
+			$res = $this->postWithAuth(self::BASE_POST_PUBLISH, $data);
+			return json_decode($res);
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Checks the status of a post publish process, using the temporary `publish_id` returned from post/publish/video/init endpoint
+	 * You can use the VideoFromUrl->publish public method to retrieve a `publish_id`
+	 *
+	 * @param string $publish_id returned from the post/publish/video/init endpoint
+	 * @return PublishStatus
+	 * @throws Exception
+	 */
+	public function checkPublishStatus(string $publish_id) {
+		$data = [
+			'publish_id' => $publish_id
+		];
+		try {
+			$res = $this->postWithAuth(self::BASE_PUBLISH_STATUS, $data);
+			if (!$res) {
+				throw new Exception('TikTok Api Error, invalid returned value '.var_export($res, 1));
+			}
+			$res = json_decode($res);
+			if (!$res) {
+				throw new Exception('TikTok Api Error, invalid JSON '.$res);
+			}
+			return PublishStatus::fromJSON($res);
+		} catch (Exception $e) {
+			throw new Exception('TikTok Api Error: '.$e->getMessage());
+		}
+	}
+
+	/**
+	 * Waits until the upload is completed either with error or success
+	 *
+	 * @param string $publish_id returned from the post/publish/video/init endpoint
+	 * @return PublishStatus
+	 * @throws Exception
+	 */
+	public function waitUntilPublished(string $publish_id, int $interval = 5) {
+		while (true) {
+			sleep($interval);
+			$PublishStatus = $this->checkPublishStatus($publish_id);
+			if ($PublishStatus->getStatus() == PublishStatus::STATUS_DOWNLOADING || $PublishStatus->getStatus() == PublishStatus::STATUS_UPLOADING) {
+				continue;
+			}
+			return $PublishStatus;
 		}
 	}
 
@@ -445,11 +618,24 @@ class Connector {
 	 * @param array $data the array containing the POST data in associative format [key: value]
 	 * @return string the response of the call or false
 	 */
-	private function postWithAuth(string $url, array $data) {
+	public function postWithAuth(string $url, array $data) {
 		$headers = [
 			'Authorization: Bearer '.$this->getToken()
 		];
 		return self::post($url, $data, $headers, true);
+	}
+
+	/**
+	 * Checks if the provided Privacy Level is  valid based on TikTok specs
+	 *
+	 * @param string $privacy_level
+	 * @return bool
+	 */
+	public static function isValidPrivacyLevel(string $privacy_level) {
+		if (in_array($privacy_level, self::VALID_PRIVACY)) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -500,6 +686,9 @@ class Connector {
 		$post = http_build_query($data);
 		if ($is_json) {
 			$post = json_encode($data);
+			if (!$data) {
+				$post = '';
+			}
 			$headers[] = 'Content-Type: application/json';
 		} else {
 			$headers[] = 'Content-Type: application/x-www-form-urlencoded';

@@ -5,7 +5,7 @@ This is an unofficial SDK for the official Login Kit APIs.
 
 ## Features
 
-**The library has been updated to use the new TikTok v2 API version**
+**The library has been updated to include video/image publish via Direct Post**
 
 Current features include:
 
@@ -15,6 +15,9 @@ Current features include:
 - Retrieve Videos
 - Paginate Videos
 - Refresh Expired Token
+- **NEW** Publish a Video with "Direct Post" via URL
+- **NEW** Publish a Video with "Direct Post" via File
+- **NEW** Publish one or more Images with "Direct Post" via URLs
 
 ## Installation
 
@@ -29,6 +32,14 @@ composer require gimucco/tiktok-loginkit
 You need to have your app set up and approved in the [TikTok Developer Portal](https://developers.tiktok.com/). 
 
 If you're upgrading to the v2 TikTok API version, make sure you've added your *Redirect URLs* and selected the proper scopes. 
+
+## Requirements for Direct Posts
+
+If you're planning to publish videos/photos via Direct Post, you need to undergo an audit. More info [here](https://developers.tiktok.com/application/content-posting-api)
+
+Until you're approved:
+- You can only publish private videos
+- The account that you use for testing must also be private
 
 ## Code Example for Logging in and retrieving basic info
 ```
@@ -67,4 +78,4 @@ $_TK = TikTokLoginKit\Connector::fromIni(__DIR__.'/env.ini');
 ```
 
 ## Examples
-Refer to the examples folder for a quick examples of how to use the login, fetch and paginate videos
+Refer to the examples folder for a quick examples of how to use the login, fetch and paginate videos, publish videos
