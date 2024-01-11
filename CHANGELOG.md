@@ -1,3 +1,7 @@
+# v0.6.1 (2024-01-11)
+
+Improved errors on missing STATE variable during login
+
 # v0.6 (2023-12-29)
 
 Major update to include Direct Publishing

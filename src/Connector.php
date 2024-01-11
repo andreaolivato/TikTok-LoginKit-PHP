@@ -178,7 +178,15 @@ class Connector {
 	 * @throws Exception If the STATE is not valid or if the API return error
 	 */
 	public function verifyCode(string $code) {
-		if (!isset($_SESSION[self::SESS_STATE]) || !isset($_GET['state']) || $_SESSION[self::SESS_STATE] != $_GET['state']) {
+		if (!isset($_SESSION[self::SESS_STATE])) {
+			throw new Exception('Missing State Session');
+			return false;
+		}
+		if (!isset($_GET['state'])) {
+			throw new Exception('Missing State GET parameter');
+			return false;
+		}
+		if ($_SESSION[self::SESS_STATE] != $_GET['state']) {
 			throw new Exception('Invalid State Variable: Session: '.$_SESSION[self::SESS_STATE].' VS GET : '.$_GET['state']);
 			return false;
 		}
