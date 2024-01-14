@@ -1,3 +1,7 @@
+# v0.6.2 (2024-01-14)
+
+BugFix: publicaly_available_post_id returned by the `publish/status/fetch` sometimes is an array, even if not documented.
+
 # v0.6.1 (2024-01-11)
 
 Improved errors on missing STATE variable during login

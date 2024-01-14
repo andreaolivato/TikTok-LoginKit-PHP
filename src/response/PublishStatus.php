@@ -75,7 +75,11 @@ class PublishStatus {
 		}
 		$public_post_id = '';
 		if (!empty($json->data->publicaly_available_post_id)) {
-			$public_post_id = $json->data->publicaly_available_post_id;
+			if (is_array($json->data->publicaly_available_post_id)) {
+				$public_post_id = $json->data->publicaly_available_post_id[0];
+			} else {
+				$public_post_id = (int) $json->data->publicaly_available_post_id;
+			}
 		}
 		return new self(true, $json->data->status, $public_post_id, $json->error->code);
 	}
