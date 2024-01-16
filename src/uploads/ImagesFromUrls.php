@@ -93,7 +93,7 @@ class ImagesFromUrls {
 		try {
 			$data = [
 				'post_info' => [
-					'title' => $this->getTitle(),
+					'title' => '',
 					'description' => $this->getTitle(),
 					'privacy_level' => $this->getPrivacyLevel(),
 					'disable_comment' => $this->getCommentsOff(),

@@ -1,3 +1,7 @@
+# v0.6.3 (2024-01-16)
+
+BugFix: Duplicated title and caption when publishing images. Currently we'll ignore the title
+
 # v0.6.2 (2024-01-14)
 
 BugFix: publicaly_available_post_id returned by the `publish/status/fetch` sometimes is an array, even if not documented.
