@@ -1,3 +1,7 @@
+# v0.6.4 (2024-01-28)
+
+BugFix: Method getMaxVideoDuration in class CreatorQuery was named incorrectly
+
 # v0.6.3 (2024-01-16)
 
 BugFix: Duplicated title and caption when publishing images. Currently we'll ignore the title
