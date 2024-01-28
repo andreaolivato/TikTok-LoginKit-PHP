@@ -128,7 +128,7 @@ class CreatorQuery {
 	 *
 	 * @return int max duration of video in seconds
 	 */
-	public function getTokenType() {
+	public function getMaxVideoDuration() {
 		return $this->max_video_duration_sec;
 	}
 
