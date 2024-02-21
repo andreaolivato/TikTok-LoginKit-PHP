@@ -23,7 +23,9 @@ class VideoFromUrl {
 	private bool $duet_off;
 	private bool $stitch_off;
 	private int $video_cover_timestamp_ms;
-	public function __construct(string $url, string $title, string $privacy_level = Connector::PRIVACY_PRIVATE, bool $comments_off = false, bool $duet_off = false, bool $stitch_off = false, int $video_cover_timestamp_ms = 1000) {
+	private bool $is_brand_content;
+	private bool $is_brand_organic;
+	public function __construct(string $url, string $title, string $privacy_level = Connector::PRIVACY_PRIVATE, bool $comments_off = false, bool $duet_off = false, bool $stitch_off = false, int $video_cover_timestamp_ms = 1000, bool $is_brand_content = false, bool $is_brand_organic = false) {
 		if (!Connector::isValidPrivacyLevel($privacy_level)) {
 			throw new Exception('TikTok Invalid Privacy Level Provided: '.$privacy_level.". Must be: ".implode(', ', Connector::VALID_PRIVACY));
 		}
@@ -34,6 +36,8 @@ class VideoFromUrl {
 		$this->duet_off = $duet_off;
 		$this->stitch_off = $stitch_off;
 		$this->video_cover_timestamp_ms = $video_cover_timestamp_ms;
+		$this->is_brand_content = $is_brand_content;
+		$this->is_brand_organic = $is_brand_organic;
 	}
 
 
@@ -106,7 +110,9 @@ class VideoFromUrl {
 					'disable_comment' => $this->getCommentsOff(),
 					'disable_duet' => $this->getDuetOff(),
 					'disable_stitch' => $this->getStitchOff(),
-					'video_cover_timestamp_ms' => $this->getVideoCoverTimestampMs()
+					'video_cover_timestamp_ms' => $this->getVideoCoverTimestampMs(),
+					'brand_content_toggle' => $this->getIsBrandContent(),
+					'brand_organic_toggle' => $this->getIsBrandOrganic()
 				],
 				'source_info' => [
 					'source' => 'PULL_FROM_URL',
@@ -188,6 +194,24 @@ class VideoFromUrl {
 	 */
 	public function getVideoCoverTimestampMs() {
 		return $this->video_cover_timestamp_ms;
+	}
+
+	/**
+	 * Get if the Video is a paid partnership to promote a third-party business.
+	 *
+	 * @return bool brand_content
+	 */
+	public function getIsBrandContent() {
+		return $this->is_brand_content;
+	}
+
+	/**
+	 * Get if the Video is promoting the creator's own business.
+	 *
+	 * @return bool brand organic
+	 */
+	public function getIsBrandOrganic() {
+		return $this->is_brand_organic;
 	}
 
 	/**

@@ -21,7 +21,9 @@ class ImagesFromUrls {
 	private string $privacy_level;
 	private bool $comments_off;
 	private bool $auto_add_music;
-	public function __construct(array $urls, string $title, string $privacy_level = Connector::PRIVACY_PRIVATE, bool $comments_off = false, bool $auto_add_music = false) {
+	private bool $is_brand_content;
+	private bool $is_brand_organic;
+	public function __construct(array $urls, string $title, string $privacy_level = Connector::PRIVACY_PRIVATE, bool $comments_off = false, bool $auto_add_music = false, bool $is_brand_content = false, bool $is_brand_organic = false) {
 		if (!Connector::isValidPrivacyLevel($privacy_level)) {
 			throw new Exception('TikTok Invalid Privacy Level Provided: '.$privacy_level.". Must be: ".implode(', ', Connector::VALID_PRIVACY));
 		}
@@ -38,6 +40,8 @@ class ImagesFromUrls {
 		$this->privacy_level = $privacy_level;
 		$this->comments_off = $comments_off;
 		$this->auto_add_music = $auto_add_music;
+		$this->is_brand_content = $is_brand_content;
+		$this->is_brand_organic = $is_brand_organic;
 	}
 
 
@@ -97,7 +101,9 @@ class ImagesFromUrls {
 					'description' => $this->getTitle(),
 					'privacy_level' => $this->getPrivacyLevel(),
 					'disable_comment' => $this->getCommentsOff(),
-					'auto_add_music' => $this->getAutoAddMusic()
+					'auto_add_music' => $this->getAutoAddMusic(),
+					'brand_content_toggle' => $this->getIsBrandContent(),
+					'brand_organic_toggle' => $this->getIsBrandOrganic()
 				],
 				'source_info' => [
 					'source' => 'PULL_FROM_URL',
@@ -164,6 +170,24 @@ class ImagesFromUrls {
 	 */
 	public function getAutoAddMusic() {
 		return $this->auto_add_music;
+	}
+
+	/**
+	 * Get if the Post is a paid partnership to promote a third-party business.
+	 *
+	 * @return bool brand_content
+	 */
+	public function getIsBrandContent() {
+		return $this->is_brand_content;
+	}
+
+	/**
+	 * Get if the Post is promoting the creator's own business.
+	 *
+	 * @return bool brand organic
+	 */
+	public function getIsBrandOrganic() {
+		return $this->is_brand_organic;
 	}
 
 	/**

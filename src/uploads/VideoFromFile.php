@@ -26,7 +26,9 @@ class VideoFromFile {
 	private int $bytes;
 	private string $mime;
 	private string $upload_url;
-	public function __construct(string $file, string $title, string $privacy_level = Connector::PRIVACY_PRIVATE, bool $comments_off = false, bool $duet_off = false, bool $stitch_off = false, int $video_cover_timestamp_ms = 1000) {
+	private bool $is_brand_content;
+	private bool $is_brand_organic;
+	public function __construct(string $file, string $title, string $privacy_level = Connector::PRIVACY_PRIVATE, bool $comments_off = false, bool $duet_off = false, bool $stitch_off = false, int $video_cover_timestamp_ms = 1000, bool $is_brand_content = false, bool $is_brand_organic = false) {
 		if (!file_exists($file)) {
 			throw new Exception('TikTok file to be uploaded doesn\'t exist: '.$file);
 		}
@@ -42,6 +44,8 @@ class VideoFromFile {
 		$this->video_cover_timestamp_ms = $video_cover_timestamp_ms;
 		$this->bytes = filesize($this->file);
 		$this->mime = mime_content_type($this->file);
+		$this->is_brand_content = $is_brand_content;
+		$this->is_brand_organic = $is_brand_organic;
 	}
 
 
@@ -114,7 +118,9 @@ class VideoFromFile {
 					'disable_comment' => $this->getCommentsOff(),
 					'disable_duet' => $this->getDuetOff(),
 					'disable_stitch' => $this->getStitchOff(),
-					'video_cover_timestamp_ms' => $this->getVideoCoverTimestampMs()
+					'video_cover_timestamp_ms' => $this->getVideoCoverTimestampMs(),
+					'brand_content_toggle' => $this->getIsBrandContent(),
+					'brand_organic_toggle' => $this->getIsBrandOrganic()
 				],
 				'source_info' => [
 					"source" => "FILE_UPLOAD",
@@ -205,6 +211,24 @@ class VideoFromFile {
 	 */
 	public function getVideoCoverTimestampMs() {
 		return $this->video_cover_timestamp_ms;
+	}
+
+	/**
+	 * Get if the Video is a paid partnership to promote a third-party business.
+	 *
+	 * @return bool brand_content
+	 */
+	public function getIsBrandContent() {
+		return $this->is_brand_content;
+	}
+
+	/**
+	 * Get if the Video is promoting the creator's own business.
+	 *
+	 * @return bool brand organic
+	 */
+	public function getIsBrandOrganic() {
+		return $this->is_brand_organic;
 	}
 
 	/**

@@ -1,3 +1,9 @@
+# v0.6.5 (2024-02-21)
+
+Added two additional parameters for video/photo upload: brand_content_toggle, brand_organic_toggle.
+This was updated to the 3 classes VideoFromFile, VideoFromUrl, and ImagesFromURls.
+Also added the related getters.
+
 # v0.6.4 (2024-01-28)
 
 BugFix: Method getMaxVideoDuration in class CreatorQuery was named incorrectly
