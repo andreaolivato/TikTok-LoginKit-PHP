@@ -1,3 +1,7 @@
+# v0.6.6 (2024-02-28)
+
+Fix inclusion path on examples to reflect the new structure
+
 # v0.6.5 (2024-02-21)
 
 Added two additional parameters for video/photo upload: brand_content_toggle, brand_organic_toggle.
