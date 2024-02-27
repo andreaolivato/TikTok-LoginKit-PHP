@@ -2,7 +2,7 @@
 
 session_start(); // Important! Required for STATE Variable check and prevent CSRF attacks
 require_once __DIR__.'/../src/Connector.php';
-require_once __DIR__.'/../src/TokenInfo.php';
+require_once __DIR__.'/../src/response/TokenInfo.php';
 require_once __DIR__.'/../src/User.php';
 require_once __DIR__.'/../src/Video.php';
 use gimucco\TikTokLoginKit;
