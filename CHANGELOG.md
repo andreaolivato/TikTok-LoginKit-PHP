@@ -1,3 +1,7 @@
+# v0.6.7 (2026-03-31)
+
+Removed deprecated function `curl_close` for better support of PHP 8.5
+
 # v0.6.6 (2024-02-28)
 
 Fix inclusion path on examples to reflect the new structure
