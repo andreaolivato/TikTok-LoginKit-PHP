@@ -54,11 +54,12 @@ class Connector {
 	public const FIELD_U_BIO = 'bio_description';
 	public const FIELD_U_URL = 'profile_deep_link';
 	public const FIELD_U_ISVERIFIED = 'is_verified';
+	public const FIELD_U_USERNAME = 'username';
 	public const FIELD_U_FOLLOWERS = 'follower_count';
 	public const FIELD_U_FOLLOWING = 'following_count';
 	public const FIELD_U_LIKES = 'likes_count';
 	public const FIELD_U_NUMVIDEOS = 'video_count';
-	public const FIELDS_U_ALL = [self::FIELD_U_OPENID, self::FIELD_U_UNIONID, self::FIELD_U_AVATAR, self::FIELD_U_AVATAR_THUMB, self::FIELD_U_AVATAR_LARGER, self::FIELD_U_DISPLAYNAME, self::FIELD_U_BIO, self::FIELD_U_URL, self::FIELD_U_ISVERIFIED, self::FIELD_U_FOLLOWERS, self::FIELD_U_FOLLOWING, self::FIELD_U_LIKES, self::FIELD_U_NUMVIDEOS];
+	public const FIELDS_U_ALL = [self::FIELD_U_OPENID, self::FIELD_U_UNIONID, self::FIELD_U_AVATAR, self::FIELD_U_AVATAR_THUMB, self::FIELD_U_AVATAR_LARGER, self::FIELD_U_DISPLAYNAME, self::FIELD_U_BIO, self::FIELD_U_URL, self::FIELD_U_ISVERIFIED, self::FIELD_U_USERNAME, self::FIELD_U_FOLLOWERS, self::FIELD_U_FOLLOWING, self::FIELD_U_LIKES, self::FIELD_U_NUMVIDEOS];
 
 	// Fields for Video
 	public const FIELD_EMBED_HTML = "embed_html";
@@ -436,6 +437,7 @@ class Connector {
 	 * After Calling the TikTok API via the getUserInfo() method, builds and returns the User object of this class for easier handling
 	 *
 	 * @param array $fields array containing all the fields you want to retrieve
+	 * @param bool $get_username if the username field is not requested or comes back empty, resolve the @username from the profile deeplink (one extra HTTP call)
 	 * @return User the User object
 	 * @throws Exception If the API returns an error
 	 */

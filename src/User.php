@@ -71,6 +71,7 @@ class User {
 	 * Builds the User Object based on all the parameters provided by the APIs, based on the JSON object
 	 *
 	 * @param object $json The user JSON returned by the APIs
+	 * @param bool $get_username_remote when the username field is missing, resolve the @username from the profile deeplink (one extra HTTP call)
 	 * @return User self
 	 */
 	public static function fromJson(object $json, bool $get_username_remote = false) {
@@ -127,7 +128,10 @@ class User {
 		if (!empty($json->data->user->video_count)) {
 			$num_videos = (int) $json->data->user->video_count;
 		}
-		if ($get_username_remote && $url) {
+		if (!empty($json->data->user->username)) {
+			$handle = ltrim((string) $json->data->user->username, "@");
+		}
+		if ($handle === '' && $get_username_remote && $url) {
 			$profile_url = self::getProfileUrl($url);
 			$handle = self::parseHandleFromUrl($profile_url);
 		}

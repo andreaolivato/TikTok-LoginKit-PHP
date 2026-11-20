@@ -1,3 +1,8 @@
+# v0.6.8 (2026-11-20)
+
+Added the `username` field (`Connector::FIELD_U_USERNAME`, scope `user.info.profile`) to the User Info fields and to `FIELDS_U_ALL`.
+`User::getHandle()` now returns it directly when present; the profile deeplink lookup (`$get_username = true`) is only used as a fallback when the field is missing.
+
 # v0.6.7 (2026-03-31)
 
 Removed deprecated function `curl_close` for better support of PHP 8.5
