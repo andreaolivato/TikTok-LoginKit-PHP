@@ -1,3 +1,8 @@
+# v0.6.9 (2026-11-20)
+
+BugFix: the larger avatar was read from a field named `avatar_larger`, while the API (and `Connector::FIELD_U_AVATAR_LARGER`) call it `avatar_large_url`.
+`User::getAvatarLarger()` was therefore always empty and `User::getBestAvatar()` fell back to the standard `avatar_url`.
+
 # v0.6.8 (2026-11-20)
 
 Added the `username` field (`Connector::FIELD_U_USERNAME`, scope `user.info.profile`) to the User Info fields and to `FIELDS_U_ALL`.

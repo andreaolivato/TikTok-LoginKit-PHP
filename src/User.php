@@ -98,8 +98,8 @@ class User {
 		if (!empty($json->data->user->avatar_url)) {
 			$avatar = $json->data->user->avatar_url;
 		}
-		if (!empty($json->data->user->avatar_larger)) {
-			$avatar_larger = $json->data->user->avatar_larger;
+		if (!empty($json->data->user->avatar_large_url)) {
+			$avatar_larger = $json->data->user->avatar_large_url;
 		}
 		if (!empty($json->data->user->display_name)) {
 			$display_name = $json->data->user->display_name;
